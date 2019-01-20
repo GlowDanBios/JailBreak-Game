@@ -1,6 +1,6 @@
 from tkinter import Tk, Canvas, mainloop, NW
 from PIL import Image, ImageTk
-import random,time,winsound,threading
+import random,time,threading
 
 
 window_width = 720
