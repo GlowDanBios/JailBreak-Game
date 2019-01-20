@@ -1,0 +1,328 @@
+from tkinter import Tk, Canvas, mainloop, NW
+from PIL import Image, ImageTk
+import random,time,sounddevice,threading
+
+window_width = 1024
+window_height = 780
+
+tk = Tk()
+c = Canvas(tk, width=window_width, height=window_height, bg='white')
+c.pack()
+
+game_map = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+]
+
+block_width = window_width // 12
+block_height = window_height // 12
+
+bullets = []
+people = []
+images = {
+    "brick": ImageTk.PhotoImage(Image.open("images/brick.jpg").resize((block_width, block_height))),
+    "grass": ImageTk.PhotoImage(Image.open("images/grass.jpg").resize((block_width, block_height))),
+    "bullet_up": ImageTk.PhotoImage((Image.open("images/bullet.gif").convert('RGBA').resize((10, 30)))),
+    "bullet_down": ImageTk.PhotoImage((Image.open("images/bullet.gif").convert('RGBA').resize((10, 30)).rotate(180))),
+    "bullet_left": ImageTk.PhotoImage((Image.open("images/bullet.gif").convert('RGBA').resize((10, 30)).rotate(90))),
+    "bullet_right": ImageTk.PhotoImage((Image.open("images/bullet.gif").convert('RGBA').resize((10, 30)).rotate(270))),
+    "player_up": ImageTk.PhotoImage((Image.open("images/player.png").convert('RGBA').resize((block_width, block_height)))),
+    "player_down": ImageTk.PhotoImage(
+        (Image.open("images/player.png").convert('RGBA').resize((block_width, block_height)).rotate(180))),
+    "player_left": ImageTk.PhotoImage(
+        (Image.open("images/player.png").convert('RGBA').resize((block_width, block_height)).rotate(90))),
+    "player_right": ImageTk.PhotoImage(
+        (Image.open("images/player.png").convert('RGBA').resize((block_width, block_height)).rotate(270))),
+    "person_up": ImageTk.PhotoImage((Image.open("images/ment.png").convert('RGBA').resize((block_width, block_height)))),
+    "person_down": ImageTk.PhotoImage(
+        (Image.open("images/ment.png").convert('RGBA').resize((block_width, block_height)).rotate(180))),
+    "person_left": ImageTk.PhotoImage(
+        (Image.open("images/ment.png").convert('RGBA').resize((block_width, block_height)).rotate(90))),
+    "person_right": ImageTk.PhotoImage(
+        (Image.open("images/ment.png").convert('RGBA').resize((block_width, block_height)).rotate(270))),
+    "win": ImageTk.PhotoImage(
+        (Image.open("images/vic.png").convert('RGBA').resize((600,600)))),
+    "lose":ImageTk.PhotoImage(
+        (Image.open("images/lo.jpg").convert('RGBA').resize((600,600)))),
+
+}
+
+for i in range(12):
+    for j in range(12):
+        if game_map[i][j] == 0:
+            c.create_image(i * block_width, j * block_height, image=images['grass'], anchor=NW)
+        if game_map[i][j] == 1:
+            c.create_image(i * block_width, j * block_height, image=images['brick'], anchor=NW)
+def play_music():
+    winsound.PlaySound("Images\MusicS.wav", winsound.SND_FILENAME)
+
+def rotate(game_object, direction):
+    keys = ['up', 'down', 'left', 'right'] 
+    for key in keys:
+         image = game_object[key]
+         c.itemconfigure(image, state='hidden')
+    image = game_object[direction]
+    c.itemconfigure(image, state='normal')
+    game_object['direction'] = direction
+    pass
+
+def go(game_object, dx, dy):
+    obg = game_object
+    keys = ['up', 'down', 'left', 'right'] 
+    for key in keys:
+         c.move(obg[key], dx, dy)
+    pass
+
+def delete(game_object):
+    keys = ['up', 'down', 'left', 'right'] 
+    for key in keys:
+            image = game_object[key]
+            c.delete(image)
+    
+    pass
+
+def coords(game_object):
+    if type(game_object) != int:
+       x, y = c.coords(game_object['up'])
+    else:
+      x,y = c.coords(game_object)
+      return (int(x // block_width), int(y // block_height))
+      pass
+
+
+
+def get_person(x, y, direction,tr):
+  if tr == 1:
+    person = {
+        "life": 15,
+        "direction": direction,
+        "up": c.create_image(x * block_width, y * block_height, image=images['player_up'], anchor=NW, state='normal'),
+        "down": c.create_image(x * block_width, y * block_height, image=images['player_down'], anchor=NW, state='hidden'),
+        "left": c.create_image(x * block_width, y * block_height, image=images['player_left'], anchor=NW, state='hidden'),
+        "right": c.create_image(x * block_width, y * block_height, image=images['player_right'], anchor=NW,
+                                state='hidden')
+    }
+  else:
+    person = {
+        "life": 10,
+        "direction": direction,
+        "up": c.create_image(x * block_width, y * block_height, image=images['person_up'], anchor=NW, state='normal'),
+        "down": c.create_image(x * block_width, y * block_height, image=images['person_down'], anchor=NW, state='hidden'),
+        "left": c.create_image(x * block_width, y * block_height, image=images['person_left'], anchor=NW, state='hidden'),
+        "right": c.create_image(x * block_width, y * block_height, image=images['person_right'], anchor=NW,
+                                state='hidden')
+    }
+  rotate(person, direction)
+  return person
+
+def get_bullet(x, y, direction):
+    if direction == 'left':
+        rx = block_width * x - 10
+        ry = block_height * y + block_height // 2
+    elif direction == 'right':
+        rx = block_width * (x + 1) + 10
+        ry = block_height * y + block_height // 2
+    elif direction == 'up':
+        rx = block_width * x + block_width // 2
+        ry = block_height * y - 10
+    else:
+        rx = block_width * x + block_width // 2
+        ry = block_height * (y + 1) + 10
+
+    bullet = {
+        "direction": 'up',
+        "up": c.create_image(rx, ry, image=images['bullet_up'], state='normal'),
+        "down": c.create_image(rx, ry, image=images['bullet_down'], state='hidden'),
+        "left": c.create_image(rx, ry, image=images['bullet_left'], state='hidden'),
+        "right": c.create_image(rx, ry, image=images['bullet_right'], state='hidden')
+    }
+
+    rotate(bullet, direction)
+    return bullet
+
+
+def get_action(person):
+    actions = []
+    equstr = ["go_up","go_left","go_down","go_up"]
+    direct = person['direction']
+    height = len(game_map)
+    width = len(game_map[1])
+    x, y = coords(person, direct)
+    for i in range(1,x):
+        dx,dy = coords(player,'up')
+        if (dx,dy) == (i,y):
+            return 'fire_left'
+    for j in range(width-1, x, -1):
+        dx, dy = coords(player, 'up')
+        if (dx,dy) == (j,y):
+            return 'fire_right'
+    for u in range(y, -1, -1):
+        dx, dy = coords(player, 'up') 
+        if (dx,dy) == (x,u):
+            return 'fire_up'
+    for k in range(y-1,height):
+        dx,dy = coords(player, 'up')
+        if (dx, dy) == (x,k):
+            return 'fire_down'
+    if is_available(x+1,y):
+        actions.append("go_right")
+    if is_available(x,y-1):
+        actions.append("go_up")
+    if is_available(x-1,y):
+        actions.append('go_left')
+    if is_available(x,y+1):
+        actions.append('go_down')
+    if len(actions)!=0:
+        return random.choice(actions)
+    else:
+         return random.choice(equstr)
+
+def move_all():
+    for person in people:
+        if person == player:
+            continue
+        rot = person['direction']
+        x, y = coords(person, rot)
+        action = get_action(person)
+        if action == "go_up":
+            if is_available(x,y-1):
+                 go(person, 0, -1*block_height)
+            rotate(person, 'up')
+        if action == "go_down":
+            if is_available(x, y+1):
+                 go(person, 0, block_height)
+            rotate(person, 'down')
+        if action == "go_left":
+            if is_available(x-1, y):
+                  go(person, -1*block_width, 0)
+            rotate(person, 'left')
+        if action == "go_right":
+            if is_available(x+1,y):
+                   go(person, block_width, 0)
+            rotate(person, 'right')
+        if action == "fire_up":
+            rotate(person, 'up')
+            bullets.append(get_bullet(x, y, 'up'))
+        if action == "fire_down":
+            rotate(person, 'down')
+            bullets.append(get_bullet(x, y, 'down'))
+        if action == "fire_left":
+            rotate(person, 'left')
+            bullets.append(get_bullet(x, y, 'left'))
+        if action == "fire_right":
+            rotate(person, 'right')
+            bullets.append(get_bullet(x, y, 'right'))
+    c.after(500, move_all)
+def shoot():
+    for bullet in bullets[:]:
+       rot = bullet['direction']
+       x, y = coords(bullet, rot)
+       for person in people:
+            direct = person['direction']
+            dx, dy = coords(person, direct)
+            if x == dx and y == dy:
+                delete(bullet)
+                person['life'] -= 1
+            if person['life'] == 0:
+                if person == player:
+                    delete(player)
+                    c.create_image(300,300,image = images["lose"])
+                else:
+                    delete(person)
+                    people.remove(person)
+                    if len(people) == 1:
+                        c.create_image(300,300,image = images["win"])
+                    continue
+       
+       
+       if is_available(x, y)!=True:
+            delete(bullet)
+            bullets.remove(bullet)
+            continue
+       elif rot == 'up':
+            move(bullet, 0, y-20)
+       elif rot == 'down':
+            move(bullet, 0, y+20)
+       elif rot == 'right':
+            move(bullet, x+20, 0)
+       elif rot == 'left':
+            move(bullet, x-20, 0)
+            pass
+    c.after(50, shoot)
+
+def is_available(i, j):
+    if i < 1 or i >= 12 or j < 0 or j >= 12:
+        return False
+    if game_map[i][j] == 1 :
+        return False
+    for person in people:
+        if coords(person) == (i,j) and person != player:
+            return False
+    return True
+def Press(key):
+    direction = player['direction']
+    dx = 0
+    dy = 0
+    x, y = coords(player)
+    if key.char in ('a', 'ф'):
+            rotate(player, 'left')
+            if is_available(x - 1, y):
+                   dx = -1
+    if key.char in ('d', 'в'):
+            rotate(player, 'right')
+            if is_available(x + 1, y):
+                   dx = 1
+    if key.char in ('w', 'ц'):
+            rotate(player, 'up')
+            if is_available(x, y - 1):
+                 dy = -1
+    if key.char in ('s', 'ы'):
+            rotate(player, 'down')
+            if is_available(x, y + 1):
+                 dy = 1
+    if key.keycode == 38 or key.char == "q":
+        rotate(player, 'up')
+        bullets.append(get_bullet(x, y, 'up'))
+    if key.keycode == 40 or key.char == "e":
+        rotate(player, ' down')
+        bullets.append(get_bullet(x, y, 'down'))
+    if key.keycode == 39 or key.char == "r":
+        rotate(player, 'right')
+        bullets.append(get_bullet(x, y, 'right'))
+    if key.keycode == 37 or key.char == "f":
+        rotate(player, 'left')
+        bullets.append(get_bullet(x, y, 'left'))
+    move(player, dx * block_width, dy * block_height)
+
+
+x = 0
+y = 0
+while not is_available(x,y):
+     x = random.randint(1,11)
+     y = random.randint(1,11)
+player = get_person(x,y,'up',1)
+people.append(people)
+for i in range(5):
+    x = 0
+    y = 0
+    #while not is_available(x,y):
+    x = random.randint(1,11)
+    y = random.randint(1,11)
+    people.append(get_person(x, y, 'up',0))
+c.after(1000, move_all)
+
+tk.bind("<KeyPress>", Press)
+music_thread = threading.Thread(target=play_music)
+music_thread.start()
+
+mainloop()
