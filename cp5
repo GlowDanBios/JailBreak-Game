@@ -1,0 +1,393 @@
+th+40) // 12
+block_height = (window_height-25) // 12
+
+bullets = []
+people = []
+items = []
+images = {
+    "brick": ImageTk.PhotoImage(Image.open("brick.png").resize((block_width, block_height))),
+    "grass": ImageTk.PhotoImage(Image.open("grass.png").resize((block_width, block_height))),
+    "player_up": ImageTk.PhotoImage((Image.open("player.png").convert('RGBA').resize((block_width-30, block_height-3)))),
+    "player_down": ImageTk.PhotoImage(
+        (Image.open("player.png").convert('RGBA').resize((block_width-30, block_height-3)).rotate(180))),
+    "player_left": ImageTk.PhotoImage(
+        (Image.open("player.png").convert('RGBA').resize((block_width-30, block_height-3)).rotate(90))),
+    "player_right": ImageTk.PhotoImage(
+        (Image.open("player.png").convert('RGBA').resize((block_width-30, block_height-3)).rotate(270))),
+    "enemy_up": ImageTk.PhotoImage((Image.open("ment.png").convert('RGBA').resize((block_width-30, block_height-3)))),
+    "enemy_down": ImageTk.PhotoImage(
+        (Image.open("ment.png").convert('RGBA').resize((block_width-30, block_height-3)).rotate(180))),
+    "enemy_left": ImageTk.PhotoImage(
+        (Image.open("ment.png").convert('RGBA').resize((block_width-30, block_height-3)).rotate(90))),
+    "enemy_right": ImageTk.PhotoImage(
+        (Image.open("ment.png").convert('RGBA').resize((block_width-30, block_height-3)).rotate(270))),
+    "amobj": ImageTk.PhotoImage(Image.open("amm0.png").resize((50, 30))),
+    "hp": ImageTk.PhotoImage(Image.open("hp.png").resize((50, 30))),
+    "w1": ImageTk.PhotoImage(Image.open("w1.png").resize((block_width//3, block_height//2))),
+    "w1_turn": ImageTk.PhotoImage(Image.open("w1.png").resize((block_width//2, block_height//3)).rotate(90)),
+    "abox": ImageTk.PhotoImage(Image.open("abox.png").resize((block_width//2, block_height//2))),
+    "heal": ImageTk.PhotoImage(Image.open("heal.png").resize((block_width//2, block_height//2))),
+    "armor": ImageTk.PhotoImage(Image.open("armor.png").resize((block_width//2, block_height//2))),
+    "bullet": ImageTk.PhotoImage((Image.open("bullet.png").convert('RGBA').resize((5, 5)))),
+    }
+ammo = 10
+
+for i in range(12):
+    for j in range(12):
+        if game_map[i][j] == 0:
+            c.create_image(i * block_width, j * block_height+50, image=images['grass'], anchor='center')
+        if game_map[i][j] == 1:
+            c.create_image(i * block_width, j * block_height+50, image=images['brick'], anchor='center')
+
+def rotate(game_object, direction):
+    keys = ['up', 'down', 'left', 'right']
+    for key in keys:
+        image = game_object[key]
+        c.itemconfigure(image, state = 'hidden')
+    image = game_object[direction]
+    c.itemconfigure(image, state = 'normal')
+    game_object['direction'] = direction
+    pass
+
+
+def move(game_object, dx, dy):
+    obg = game_object
+    keys = ['up', 'down', 'left', 'right'] 
+    for key in keys:
+         c.move(obg[key], dx, dy)
+    pass
+
+def delete(game_object):
+    keys = ['up', 'down', 'left', 'right'] 
+    for key in keys:
+            image = game_object[key]
+            c.delete(image)
+    
+    pass
+
+
+def coords(game_object):
+    if type(game_object) != int:
+       x, y = c.coords(game_object['up'])
+    else:
+        x,y = c.coords(game_object)
+    return (int(x // block_width), int(y // block_height))
+    pass
+
+
+def get_person(x, y, direction,u):
+  if u == 1:
+    person = {
+        "life": 3,
+        "weapon": 1,
+        "direction": direction,
+        "up": c.create_image(x * block_width, y * block_height, image=images['player_up'], anchor='center', state='normal'),
+        "down": c.create_image(x * block_width, y * block_height, image=images['player_down'], anchor='center', state='hidden'),
+        "left": c.create_image(x * block_width, y * block_height, image=images['player_left'], anchor='center', state='hidden'),
+        "right": c.create_image(x * block_width, y * block_height, image=images['player_right'], anchor='center',
+                                state='hidden')
+    }
+  else:
+    person ={
+        "life": 1,
+        "weapon": 1,
+        "direction": direction,
+        "up": c.create_image(x * block_width, y * block_height, image=images['enemy_up'], anchor='center', state='normal'),
+        "down": c.create_image(x * block_width, y * block_height, image=images['enemy_down'], anchor='center', state='hidden'),
+        "left": c.create_image(x * block_width, y * block_height, image=images['enemy_left'], anchor='center', state='hidden'),
+        "right": c.create_image(x * block_width, y * block_height, image=images['enemy_right'], anchor='center', state='hidden')
+    }
+  people.append(person)
+  
+  rotate(person, direction)
+  return person
+
+def shoot(x, y, direction, weapon):
+    if direction == 'left':
+        rx = block_width * x - 10
+        ry = block_height * y + block_height // 2
+    elif direction == 'right':
+        rx = block_width * (x + 1) + 10
+        ry = block_height * y + block_height // 2
+    elif direction == 'up':
+        rx = block_width * x + block_width // 2
+        ry = block_height * y - 10
+    else:
+        rx = block_width * x + block_width // 2
+        ry = block_height * (y + 1) + 10
+        
+    if weapon == 1:
+      bullet = {
+        "direction": 'up',
+      }
+
+    return bullet
+
+def move_bullets():
+    for bullet in bullets[:]:
+        rot = bullet['direction']
+        x, y = coords(bullet, rot)
+        for person in people:
+
+            direct = person['direction']
+            dx, dy = coords(tank, direct)
+            if x == dx and y == dy:
+                delete(bullet)
+                bullets.remove(bullet)
+                person['life'] -= 1
+            if person['life'] == 0:
+                if person == people:
+                    tk.destroy()
+                else:
+                    delete(person)
+                    tanks.remove(person)
+                    continue
+
+        if is_available(x, y)!=True:
+            delete(bullet)
+            bullets.remove(bullet)
+        elif rot == 'up':
+            move(bullet, 0, y-20)
+        elif rot == 'down':
+            move(bullet, 0, y+20)
+        elif rot == 'right':
+            move(bullet, x+20, 0)
+        elif rot == 'left':
+            move(bullet, x-20, 0)
+            pass
+    c.after(50, move_bullets)
+
+
+def is_available(i, j):
+    j -= 1
+    if i < 1 or i >= 12 or j < 0 or j >= 12:
+        return False
+    if game_map[i][j] == 1 :
+        return False
+    for person in people:
+        if coords(person) == (i,j) and person != player:
+            return False
+    return True
+
+def act(person):
+    actions = []
+    equstr = ["go_up","go_left","go_down","go_up"]
+    direct = person['direction']
+    height = len(game_map)
+    width = len(game_map[1])
+    x, y = coords(person)
+    for i in range(1,x):
+        dx,dy = coords(player)
+        if (dx,dy) == (i,y):
+            return 'fire_left'
+    for j in range(width-1, x, -1):
+        dx, dy = coords(player)
+        if (dx,dy) == (j,y):
+            return 'fire_right'
+    for u in range(y, -1, -1):
+        dx, dy = coords(player) 
+        if (dx,dy) == (x,u):
+            return 'fire_up'
+    for k in range(y-1,height):
+        dx,dy = coords(player)
+        if (dx, dy) == (x,k):
+            return 'fire_down'
+    if is_available(x+1,y):
+        actions.append("go_right")
+    if is_available(x,y-1):
+        actions.append("go_up")
+    if is_available(x-1,y):
+        actions.append('go_left')
+    if is_available(x,y+1):
+        actions.append('go_down')
+    if len(actions)!=0:
+        return random.choice(actions)
+    else:
+         return random.choice(equstr)
+
+
+x=0
+y=0
+while is_available(x,y) == False:
+    x = random.randint(0,13)
+    y = random.randint(1,11)
+player = get_person(x,y,'up',1)
+
+'''for i in range(1,5)'''
+get_person(1,2,'up',0)
+
+def move_all():
+    for person in people:
+        if person == player:
+            continue
+        weap = person['weapon']
+        rot = person['direction']
+        x, y = coords(person)
+        action = act(person)
+        if action == "go_up":
+            if is_available(x,y-1):
+                 move(person, 0, -1*block_height)
+            rotate(person, 'up')
+        if action == "go_down":
+            if is_available(x, y+1):
+                 move(person, 0, block_height)
+            rotate(person, 'down')
+        if action == "go_left":
+            if is_available(x-1, y):
+                  move(person, -1*block_width, 0)
+            rotate(person, 'left')
+        if action == "go_right":
+            if is_available(x+1,y):
+                   move(person, block_width, 0)
+            rotate(person, 'right')
+        if action == "fire_up":
+            rotate(person, 'up')
+            bullets.append(shoot(x, y, 'up',weap))
+        if action == "fire_down":
+            rotate(person, 'down')
+            bullets.append(shoot(x, y, 'down',weap))
+        if action == "fire_left":
+            rotate(person, 'left')
+            bullets.append(shoot(x, y, 'left',weap))
+        if action == "fire_right":
+            rotate(person, 'right')
+            bullets.append(shoot(x, y, 'right',weap))
+        c.after(500, move_all)
+
+am = 0
+def spawn_potronov():
+    global am
+    x=0
+    y=0
+    while is_available(x, y) == False:
+        x = random.randint(0,13)
+        y = random.randint(1,11)
+    am = c.create_image(x*block_width, y*block_height, image=images['abox'], anchor='center')
+    items.append(am)
+
+    
+
+hel = 0
+def spawn_hilok():
+    global hel
+    v = 0
+    i = 0
+    while is_available(v, i) == False:
+        v = random.randint(0,13)
+        i = random.randint(1,11)
+    hel = c.create_image(v*block_width, i*block_height, image=images['heal'], anchor='center')
+
+    items.append(hel)
+    
+
+
+br = 0
+def spawn_broni():
+    global br
+    z = 0
+    p = 0
+    while is_available(z, p) == False:
+        z = random.randint(0,13)
+        p = random.randint(1,11)
+    br = c.create_image(z*block_width, p*block_height, image=images['armor'], anchor='center')
+
+    items.append(br)
+
+def spawn_mentov():
+    q = 0
+    w = 0
+    while is_available(q, w) == False:
+        q = random.randint(0,13)
+        w = random.randint(1,11)
+        get_person(q, w, "up", 0)
+
+ammo = 10 
+guns = []
+def upd():
+    global ammo
+
+    a = c.create_text(5,5, anchor = 'nw', font = 'Pursia',fill = "white",
+                  text = ammo)
+    b = c.create_text(600,5, anchor = 'nw', font = 'Pursia', fill = "white",
+                      text = player['life'])
+    c.create_image(25,0, image = images['amobj'], anchor = 'nw')
+    c.create_image(615,0, image = images['hp'], anchor = 'nw')
+    for item in items:
+        if coords(item) == coords(player) and item == am:
+                ammo+=5
+                items.remove(item)
+                c.delete(item)
+        if coords(item) == coords(player) and item == hel:
+               if player['life'] != 3:
+                   player['life'] += 1
+                   items.remove(item)
+                   c.delete(item)
+        if coords(item) == coords(player) and item == br:
+            player['life'] += 1
+            items.remove(item)
+            c.delete(item)
+                   
+    
+    for person in people:
+        x,y = c.coords(person['up'])
+        if person['direction'] == 'left':
+          if person['weapon'] == 1:
+            u = c.create_image(x,y+15, image = images['w1_turn'], anchor = 'center')
+            guns.append(u)
+        if person['direction'] == 'right':
+           if person['weapon'] == 1:
+             b =  c.create_image(x,y-15, image = images['w1_turn'], anchor = 'center')
+             guns.append(b)
+        if person['direction'] == 'up':
+            if person['weapon'] == 1:
+               q=  c.create_image(x+15,y, image = images['w1'], anchor = 'center')
+               guns.append(q)
+        if person['direction'] == 'down':
+            if person['weapon'] == 1:
+               k = c.create_image(x-15,y, image = images['w1'], anchor = 'center')
+               guns.append(k)
+
+
+                
+    c.after(1,upd)
+def Press(key):
+    global ammo
+    direction = player['direction']
+    dx = 0
+    dy = 0
+    x, y = coords(player)
+    if key.char in ('a', 'ф'):
+            rotate(player, 'left')
+            if is_available(x - 1, y):
+                   dx = -1
+    if key.char in ('d', 'в'):
+            rotate(player, 'right')
+            if is_available(x + 1, y):
+                   dx = 1
+    if key.char in ('w', 'ц'):
+            rotate(player, 'up')
+            if is_available(x, y - 1):
+                 dy = -1
+    if key.char in ('s', 'ы'):
+            rotate(player, 'down')
+            if is_available(x, y + 1):
+                dy = 1
+    if key.char == 'Space':
+        shoot(x,y,direction,1)
+        ammo-=1
+    move(player, dx * block_width, dy * block_height)
+
+tk.bind("<KeyPress>", Press)
+c.after(1,upd)
+c.after(1000, move_all)
+c.after(1000,spawn_broni)
+c.after(1000,spawn_hilok)
+c.after(1000,spawn_mentov)
+c.after(1000,spawn_potronov)
+mainloop()
+
+
+    
+
+        
+
